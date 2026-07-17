@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Dressing Room</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMxZTFiMTciLz4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNkOGI4NzgiIHN0cm9rZS13aWR0aD0iMy40IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogICAgPHBhdGggZD0iTTMyIDIwLjVjMC0zIDIuMy01LjMgNS4yLTUuMyAyLjkgMCA1LjIgMi4zIDUuMiA1LjIgMCAyLjItMS42IDMuNC0zLjQgNC4yLTIuNyAxLjItNC4yIDIuNC00LjIgNC42Ii8+CiAgICA8cGF0aCBkPSJNMzIgMzMuMiAxMi41IDQ1LjJjLTEuNyAxLTEgMy42IDEgMy42aDM3YzIgMCAyLjctMi42IDEtMy42TDMyIDMzLjJ6Ii8+CiAgPC9nPgogIDxjaXJjbGUgY3g9IjMyIiBjeT0iMzMuMiIgcj0iMi4yIiBmaWxsPSIjZDhiODc4Ii8+Cjwvc3ZnPgo=">
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --panel: #fffefc;
+    --ink: #1e1b17;
+    --sub: #8f887c;
+    --line: #e6e1d7;
+    --gold: #b3925f;
+    --gold-soft: #f0e8da;
+    --danger: #b45a49;
+    --serif: "Didot", "Bodoni 72", Georgia, "Hiragino Mincho ProN", serif;
+    --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 13.5px;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    padding: 40px 44px 30px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 {
+    font-family: var(--serif);
+    font-size: 46px; font-weight: 500; letter-spacing: .08em;
+    line-height: 1.05; color: var(--ink);
+    cursor: pointer; display: inline-flex; align-items: center; gap: 16px;
+    transition: opacity .15s;
+  }
+  header h1:hover { opacity: .6; }
+  header h1 .logo { width: 46px; height: 46px; flex: 0 0 46px; }
+  header p.sub { color: var(--sub); font-size: 12.5px; margin-top: 14px; letter-spacing: .1em; }
+
+  .layout { display: flex; align-items: stretch; min-height: calc(100vh - 130px); }
+  .closet { flex: 1 1 auto; padding: 30px 40px 80px; min-width: 0; }
+  .side {
+    width: 420px; flex: 0 0 420px;
+    background: var(--panel); border-left: 1px solid var(--line);
+    padding: 36px 30px 80px;
+  }
+
+  h2 { font-size: 14px; letter-spacing: .12em; margin-bottom: 14px; font-weight: 600; }
+  h2 .en {
+    display: block; font-family: var(--serif); font-weight: 400;
+    font-size: 10.5px; letter-spacing: .38em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 6px;
+  }
+  h2 .note { font-size: 10.5px; color: var(--sub); font-weight: 400; letter-spacing: .05em; margin-left: 8px; }
+
+  /* ---- add zone ---- */
+  .addzone {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 24px 26px;
+    margin-bottom: 28px;
+    text-align: center;
+    transition: border-color .2s, background .2s;
+  }
+  .addzone.dragover { border-color: var(--gold); background: var(--gold-soft); }
+  .addzone .big { font-size: 13px; font-weight: 600; letter-spacing: .22em; margin-bottom: 10px; }
+  .addzone .hint { color: var(--sub); font-size: 11.5px; line-height: 2; letter-spacing: .04em; }
+  .addzone .hint b { color: var(--ink); font-weight: 600; }
+  .addzone .row { margin-top: 16px; display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .addzone .row span { font-size: 11px; color: var(--sub); letter-spacing: .14em; }
+
+  select, input[type="text"] {
+    font: inherit; padding: 9px 12px; border: 1px solid var(--line);
+    border-radius: 3px; background: #fff; color: var(--ink);
+  }
+  select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='%238f887c' fill='none' stroke-width='1.2'/></svg>");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 32px;
+  }
+  select:focus, input[type="text"]:focus { outline: none; border-color: var(--ink); }
+
+  button {
+    font: inherit; cursor: pointer; border: none; border-radius: 3px;
+    padding: 9px 18px; background: var(--ink); color: #fff;
+    letter-spacing: .12em; transition: opacity .15s, background .2s, color .2s;
+  }
+  button:hover { opacity: .85; }
+  button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+  button.ghost:hover { background: var(--ink); color: #fff; opacity: 1; }
+  button.small { padding: 6px 14px; font-size: 12px; }
+
+  /* ---- tabs ---- */
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .tabs button {
+    background: transparent; color: var(--sub); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 16px; font-size: 12px; letter-spacing: .1em;
+  }
+  .tabs button:hover { border-color: var(--ink); color: var(--ink); opacity: 1; }
+  .tabs button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .tabs button .cnt { font-size: 11px; margin-left: 5px; font-weight: 700; color: var(--gold); }
+  .tabs button.active .cnt { color: #fff; }
+  .tabs button.tab-model {
+    background: var(--gold); color: #fff; border-color: var(--gold);
+    font-weight: 700; padding: 6px 20px;
+  }
+  .tabs button.tab-model:hover { background: #9c7d4d; border-color: #9c7d4d; color: #fff; }
+  .tabs button.tab-model.active { background: var(--ink); border-color: var(--ink); }
+  .tabs button.tab-model .cnt { color: #fff; }
+
+  /* ---- grid ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    overflow: hidden; position: relative; cursor: pointer;
+    transition: box-shadow .25s, transform .25s cubic-bezier(.2,.7,.3,1), border-color .2s;
+  }
+  .card:hover {
+    transform: translateY(-4px) scale(1.09);
+    box-shadow: 0 18px 40px rgba(30,27,23,.16);
+    z-index: 3;
+  }
+  .card.selected { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink), 0 12px 26px rgba(30,27,23,.10); }
+  .card .thumb {
+    width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; background: #efece5;
+  }
+  .card .badge {
+    position: absolute; top: 10px; left: 10px;
+    background: rgba(30,27,23,.78); color: #fff; font-size: 9px;
+    letter-spacing: .16em; padding: 3px 10px; border-radius: 999px;
+  }
+  .card .check {
+    position: absolute; top: 8px; right: 8px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ink); color: #fff; font-size: 12px;
+    display: none; align-items: center; justify-content: center;
+  }
+  .card.selected .check { display: flex; }
+  .card .zoom {
+    position: absolute; top: 8px; right: 8px;
+    width: 26px; height: 26px; padding: 0; border-radius: 50%;
+    background: rgba(255,255,255,.92); color: var(--ink); border: 1px solid var(--line);
+    font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .15s;
+  }
+  .card:hover .zoom { opacity: 1; }
+  .card.selected .zoom { right: 38px; opacity: 1; }
+  .card .zoom:hover { background: #fff; opacity: 1; }
+
+  /* ---- lightbox ---- */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(20,18,15,.92); display: none;
+    align-items: center; justify-content: center; padding: 12px;
+  }
+  .lightbox.show { display: flex; }
+  .lb-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; max-height: 98vh; }
+  .lb-inner img { max-width: 96vw; max-height: 88vh; object-fit: contain; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  .lb-cap { display: flex; align-items: center; gap: 18px; color: #fff; }
+  .lb-cap span { font-size: 15px; letter-spacing: .06em; }
+  #lbAdd {
+    background: #fff; color: var(--ink); padding: 9px 22px; border-radius: 3px;
+    font-size: 13px; letter-spacing: .1em;
+  }
+  #lbAdd.remove { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.5); }
+  .lb-close {
+    position: absolute; top: 22px; right: 28px;
+    background: transparent; color: #fff; font-size: 30px; line-height: 1; padding: 4px 10px;
+  }
+  .lb-close:hover { opacity: .6; }
+  .card .meta { padding: 9px 10px; display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--line); }
+  .card .meta input {
+    flex: 1; min-width: 0; border: none; background: transparent; font-size: 11.5px; padding: 2px;
+    color: var(--ink); letter-spacing: .02em;
+  }
+  .card .meta input:focus { outline: none; border-bottom: 1px solid var(--gold); }
+  .card .del { background: transparent; color: #cfc9be; padding: 2px 4px; font-size: 12px; border: none; }
+  .card .del:hover { color: var(--danger); opacity: 1; background: transparent; }
+  .empty { color: var(--sub); padding: 60px 10px; text-align: center; line-height: 2.2; font-size: 12.5px; letter-spacing: .05em; }
+
+  /* ---- side panel ---- */
+  .block { margin-bottom: 36px; }
+  .seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; width: fit-content; }
+  .seg button {
+    background: var(--panel); color: var(--sub); border: none; border-right: 1px solid var(--line);
+    border-radius: 0; padding: 9px 14px; font-size: 12px; letter-spacing: .06em;
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button:hover { opacity: 1; color: var(--ink); }
+  .seg button.active { background: var(--ink); color: #fff; }
+  .field { margin-top: 14px; }
+  .field label { display: block; font-size: 10.5px; color: var(--sub); margin-bottom: 6px; letter-spacing: .2em; }
+  .field select, .field input[type="text"] { width: 100%; }
+  .chkrow { margin-top: 14px; font-size: 12.5px; display: flex; align-items: center; gap: 8px; }
+  .chkrow input[type=checkbox] { accent-color: var(--ink); width: 15px; height: 15px; }
+
+  .outfit-list { display: flex; flex-direction: column; gap: 8px; }
+  .outfit-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 8px 10px;
+  }
+  .outfit-item img { width: 46px; height: 58px; object-fit: cover; border-radius: 2px; }
+  .outfit-item .no {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: #fff;
+    font-size: 10px; font-family: var(--serif); display: flex; align-items: center; justify-content: center; flex: 0 0 20px;
+  }
+  .outfit-item .info { flex: 1; min-width: 0; }
+  .outfit-item .info .nm { font-size: 12px; font-weight: 600; letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .outfit-item .info .ct { font-size: 10px; color: var(--sub); letter-spacing: .16em; margin-top: 2px; }
+  .usemode { display: inline-flex; margin-top: 6px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .usemode button {
+    background: transparent; color: var(--sub); border: none; border-radius: 0;
+    padding: 3px 10px; font-size: 10.5px; letter-spacing: .04em;
+  }
+  .usemode button.on { background: var(--ink); color: #fff; }
+  .outfit-item button { background: transparent; color: var(--sub); padding: 2px 6px; }
+  .outfit-item button:hover { color: var(--danger); opacity: 1; }
+  .outfit-empty { color: var(--sub); font-size: 12px; padding: 10px 2px; line-height: 2; letter-spacing: .03em; }
+
+  .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+  .actions .primary {
+    background: var(--ink); font-size: 13.5px; padding: 16px; letter-spacing: .3em;
+  }
+  .actions .primary:hover { background: var(--gold); opacity: 1; }
+
+  /* ---- output ---- */
+  #output { margin-top: 28px; display: none; }
+  #output textarea {
+    width: 100%; height: 260px; font: 11.5px/1.6 "SF Mono", Menlo, monospace;
+    border: 1px solid var(--line); border-radius: 3px; padding: 12px; background: #fbfaf6;
+    resize: vertical;
+  }
+  .attach-note {
+    background: var(--gold-soft); border-radius: 3px; padding: 12px 16px;
+    font-size: 12px; line-height: 2.1; margin-bottom: 12px;
+  }
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 12px 28px; border-radius: 999px;
+    font-size: 12.5px; letter-spacing: .08em; opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 99;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 title="クリックでリセット"><svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="12" fill="#1e1b17"/><g fill="none" stroke="#d8b878" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 20.5c0-3 2.3-5.3 5.2-5.3 2.9 0 5.2 2.3 5.2 5.2 0 2.2-1.6 3.4-3.4 4.2-2.7 1.2-4.2 2.4-4.2 4.6"/><path d="M32 33.2 12.5 45.2c-1.7 1-1 3.6 1 3.6h37c2 0 2.7-2.6 1-3.6L32 33.2z"/></g><circle cx="32" cy="33.2" r="2.2" fill="#d8b878"/></svg>Virtual Dressing&nbsp;Room</h1>
+  <p class="sub">服をあつめて、コーデを組んで、ChatGPT用のプロンプトに。</p>
+</header>
+
+<div class="layout">
+
+  <!-- ============ 左：クローゼット ============ -->
+  <div class="closet">
+    <div class="addzone" id="addzone">
+      <div class="big">服・モデル画像を追加</div>
+      <div class="hint">
+        ピンタレストやGoogle画像は「画像をコピー」して、この画面で <b>Cmd + V</b> で貼り付け。<br>
+        保存済みのファイルはドラッグ＆ドロップでも追加できます。
+      </div>
+      <div class="row">
+        <span>追加先カテゴリ</span>
+        <select id="addCategory"></select>
+        <button class="ghost small" id="pickBtn">ファイルを選ぶ</button>
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="emptyMsg" style="display:none">
+      まだ画像がありません。<br>気になる服をコピーして Cmd+V で集めてみてくださいね 😊
+    </div>
+  </div>
+
+  <!-- ============ 右：コーデ & 設定 ============ -->
+  <div class="side">
+
+    <div class="block">
+      <h2><span class="en">Model</span>モデルの扱い</h2>
+      <div class="seg" id="modelMode">
+        <button data-v="image" class="active">モデル画像を使う</button>
+        <button data-v="text">文章で指定</button>
+        <button data-v="none">服だけ（物撮り）</button>
+      </div>
+
+      <div id="modelTextOpts" style="display:none">
+        <div class="field"><label>年代</label>
+          <select id="mAge">
+            <option>20代前半</option><option>20代後半</option>
+            <option selected>30代前半</option><option>30代後半</option><option>40代</option>
+          </select>
+        </div>
+        <div class="field"><label>雰囲気</label>
+          <select id="mMood">
+            <option selected>ナチュラル</option><option>上品・高級感</option>
+            <option>カジュアル</option><option>クール</option><option>フェミニン</option>
+          </select>
+        </div>
+        <div class="field"><label>髪型</label>
+          <select id="mHair">
+            <option selected>ゆるいまとめ髪</option><option>ロング（ダウンスタイル）</option>
+            <option>ミディアム</option><option>ショート</option>
+          </select>
+        </div>
+        <div class="field"><label>人種・国籍イメージ</label>
+          <select id="mRace">
+            <option selected>日本人</option><option>アジア系</option><option>欧米系</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="modelNoneOpts" style="display:none">
+        <div class="field"><label>見せ方</label>
+          <select id="flatStyle">
+            <option selected>平置き（フラットレイ）</option>
+            <option>ハンガー掛け</option>
+            <option>トルソー（マネキン）</option>
+            <option>ゴーストマネキン（服だけ立体）</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="modelImageHint" class="outfit-empty">
+        クローゼットの「モデル」カテゴリから1枚選んでくださいね（選択中：<span id="modelPicked">なし</span>）
+      </div>
+    </div>
+
+    <div class="block" id="shootBlock">
+      <h2><span class="en">Shooting</span>撮り方</h2>
+      <div class="field"><label>構図</label>
+        <select id="composition">
+          <option selected>全身（縦位置）</option><option>膝上</option><option>バストアップ</option>
+          <option>後ろ姿</option><option>歩いている姿</option><option>座っている姿</option>
+        </select>
+      </div>
+      <div class="field"><label>シーン・背景</label>
+        <select id="scene">
+          <option selected>白ホリスタジオ（自然光）</option>
+          <option>ベージュ系スタジオ</option>
+          <option>ヨーロッパの街角</option>
+          <option>カフェのテラス</option>
+          <option>公園・緑の中</option>
+          <option>海辺</option>
+          <option>モダンな室内</option>
+          <option>夜の街（イルミネーション）</option>
+          <option value="custom">自由入力…</option>
+        </select>
+        <input type="text" id="sceneCustom" placeholder="例：京都の路地、雨上がりの交差点" style="display:none;margin-top:6px">
+      </div>
+      <div class="field"><label>画像の縦横比</label>
+        <select id="aspect">
+          <option>3:4（縦）</option><option selected>9:16（縦長・スマホ）</option>
+          <option>1:1（正方形）</option><option>4:3（横）</option><option>16:9（横長）</option>
+        </select>
+      </div>
+      <div class="chkrow" id="faceRow">
+        <input type="checkbox" id="noFace"><label for="noFace" style="margin:0;font-size:13px;color:var(--ink)">顔を写さない（あご下からの構図にする）</label>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2><span class="en">Today's Look</span>今日のコーデ<span class="note">左の服をクリックで追加</span></h2>
+      <div class="outfit-list" id="outfitList"></div>
+      <div class="outfit-empty" id="outfitEmpty">まだ何も選ばれていません。<br>左のクローゼットから服をクリックしてくださいね。</div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="genBtn">プロンプトを生成</button>
+      <button class="ghost" id="exportBtn">選択画像を番号付きで書き出す（添付用）</button>
+      <button class="ghost" id="clearBtn">選択をぜんぶ外す</button>
+    </div>
+
+    <div id="output">
+      <h2 style="margin-top:8px"><span class="en">Prompt</span>できあがり</h2>
+      <div class="attach-note" id="attachNote"></div>
+      <textarea id="jsonOut" readonly></textarea>
+      <div class="actions">
+        <button id="copyBtn">JSONをコピー</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" id="lbClose" title="閉じる">×</button>
+  <div class="lb-inner">
+    <img id="lbImg" alt="">
+    <div class="lb-cap">
+      <span id="lbName"></span>
+      <button id="lbAdd"></button>
+    </div>
+  </div>
+</div>
+
+<script src="seed-data.js"></script>
+<script>
+/* ================= カテゴリ定義 ================= */
+const CATS = [
+  { id: 'model',  label: 'モデル',   en: 'model' },
+  { id: 'outfit', label: 'コーデ全身', en: 'full outfit (reference photo)' },
+  { id: 'summer', label: '夏服',     en: 'summer outfit (reference photo)' },
+  { id: 'conserva', label: 'キレイめ', en: 'conservative / elegant outfit (reference photo)' },
+  { id: 'tops',   label: 'トップス', en: 'tops' },
+  { id: 'bottoms',label: 'ボトムス', en: 'bottoms' },
+  { id: 'onepiece',label:'ワンピース', en: 'dress / one-piece' },
+  { id: 'outer',  label: 'アウター', en: 'outerwear' },
+  { id: 'shoes',  label: 'シューズ', en: 'shoes' },
+  { id: 'bag',    label: 'バッグ',   en: 'bag' },
+  { id: 'acc',    label: '小物',     en: 'accessory' },
+];
+const catLabel = id => (CATS.find(c => c.id === id) || {}).label || id;
+const catEn    = id => (CATS.find(c => c.id === id) || {}).en || id;
+
+/* ================= IndexedDB ================= */
+let db;
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('kisekae-tool', 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore('items', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = e => { db = e.target.result; res(); };
+    req.onerror = () => rej(req.error);
+  });
+}
+const tx = mode => db.transaction('items', mode).objectStore('items');
+function dbAdd(item)   { return new Promise((res, rej) => { const r = tx('readwrite').add(item); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+function dbAll()       { return new Promise((res, rej) => { const r = tx('readonly').getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+function dbPut(item)   { return new Promise((res, rej) => { const r = tx('readwrite').put(item); r.onsuccess = () => res(); r.onerror = () => rej(r.error); }); }
+function dbDel(id)     { return new Promise((res, rej) => { const r = tx('readwrite').delete(id); r.onsuccess = () => res(); r.onerror = () => rej(r.error); }); }
+
+/* ================= 状態 ================= */
+let items = [];               // {id, category, name, blob}
+let urls = new Map();         // id -> objectURL
+let currentTab = 'all';
+let selected = [];            // 服の選択（順序が添付順）: item id の配列
+let selectedModel = null;     // モデル画像の id
+let modelMode = 'image';      // image | text | none
+let itemMode = {};            // item id -> 'full'(全身コーデ扱い) | 'part'(単品扱い)
+
+/* 全身コーデ扱いがデフォルトのカテゴリ */
+const REF_CATS = ['outfit', 'summer', 'conserva'];
+function defaultMode(cat) { return REF_CATS.includes(cat) ? 'full' : 'part'; }
+function modeOf(item) { return itemMode[item.id] || defaultMode(item.category); }
+
+function url(item) {
+  if (!urls.has(item.id)) urls.set(item.id, URL.createObjectURL(item.blob));
+  return urls.get(item.id);
+}
+
+/* ================= 追加 ================= */
+async function addFiles(files, category) {
+  let added = 0;
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    const name = category === 'model' ? 'モデル' : (f.name || '').replace(/\.[a-z]+$/i, '') || catLabel(category);
+    const id = await dbAdd({ category, name: name === 'image' ? catLabel(category) : name, blob: f, createdAt: Date.now() });
+    added++;
+  }
+  if (added) {
+    await reload();
+    toast(`${added}枚 追加しました 🎉`);
+    if (currentTab !== 'all' && currentTab !== category) { currentTab = category; renderTabs(); renderGrid(); }
+  }
+}
+
+/* ================= 描画 ================= */
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  const counts = {};
+  items.forEach(i => counts[i.category] = (counts[i.category] || 0) + 1);
+  // モデルを先頭、次に「すべて」、その後は残りのカテゴリ
+  const modelCat = CATS.find(c => c.id === 'model');
+  const rest = CATS.filter(c => c.id !== 'model');
+  const all = [modelCat, { id: 'all', label: 'すべて' }, ...rest];
+  tabs.innerHTML = '';
+  all.forEach(c => {
+    const b = document.createElement('button');
+    const n = c.id === 'all' ? items.length : (counts[c.id] || 0);
+    b.innerHTML = `${c.label}<span class="cnt">${n}</span>`;
+    b.className = (currentTab === c.id ? 'active' : '') + (c.id === 'model' ? ' tab-model' : '');
+    b.onclick = () => { currentTab = c.id; renderTabs(); renderGrid(); };
+    tabs.appendChild(b);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const list = items.filter(i => currentTab === 'all' || i.category === currentTab);
+  document.getElementById('emptyMsg').style.display = list.length ? 'none' : 'block';
+  list.forEach(item => {
+    const isModel = item.category === 'model';
+    const isSel = isModel ? selectedModel === item.id : selected.includes(item.id);
+    const card = document.createElement('div');
+    card.className = 'card' + (isSel ? ' selected' : '');
+    card.innerHTML = `
+      <img class="thumb" src="${url(item)}" alt="">
+      <span class="badge">${catLabel(item.category)}</span>
+      <button class="zoom" title="大きく見る">⤢</button>
+      <span class="check">✓</span>
+      <div class="meta">
+        <input type="text" value="${item.name.replace(/"/g, '&quot;')}" title="クリックで名前を編集">
+        <button class="del" title="削除">🗑</button>
+      </div>`;
+    card.querySelector('.thumb').onclick = () => toggleSelect(item);
+    card.querySelector('.zoom').onclick = e => { e.stopPropagation(); openLightbox(item); };
+    const nameInput = card.querySelector('input');
+    nameInput.onclick = e => e.stopPropagation();
+    nameInput.onchange = async () => { item.name = nameInput.value.trim() || catLabel(item.category); await dbPut(item); renderOutfit(); };
+    card.querySelector('.del').onclick = async e => {
+      e.stopPropagation();
+      if (!confirm(`「${item.name}」を削除しますか？`)) return;
+      await dbDel(item.id);
+      selected = selected.filter(id => id !== item.id);
+      if (selectedModel === item.id) selectedModel = null;
+      await reload();
+    };
+    grid.appendChild(card);
+  });
+}
+
+function toggleSelect(item) {
+  if (item.category === 'model') {
+    selectedModel = selectedModel === item.id ? null : item.id;
+    if (selectedModel && modelMode !== 'image') setModelMode('image');
+  } else {
+    if (selected.includes(item.id)) selected = selected.filter(id => id !== item.id);
+    else selected.push(item.id);
+  }
+  renderGrid(); renderOutfit();
+}
+
+function renderOutfit() {
+  const listEl = document.getElementById('outfitList');
+  listEl.innerHTML = '';
+  const attach = attachOrder();
+  document.getElementById('outfitEmpty').style.display = attach.length ? 'none' : 'block';
+  attach.forEach((entry, idx) => {
+    const div = document.createElement('div');
+    div.className = 'outfit-item';
+    const isModel = entry.item.category === 'model';
+    const mode = modeOf(entry.item);
+    const toggle = isModel ? '' : `
+      <div class="usemode" title="この服の使い方を切り替え">
+        <button class="${mode === 'part' ? 'on' : ''}" data-m="part">単品</button>
+        <button class="${mode === 'full' ? 'on' : ''}" data-m="full">全身コーデ</button>
+      </div>`;
+    div.innerHTML = `
+      <span class="no">${idx + 1}</span>
+      <img src="${url(entry.item)}">
+      <div class="info">
+        <div class="nm">${entry.item.name}</div>
+        <div class="ct">${catLabel(entry.item.category)}</div>
+        ${toggle}
+      </div>
+      <button class="remove" title="外す">✕</button>`;
+    div.querySelector('.remove').onclick = () => {
+      if (isModel) selectedModel = null;
+      else selected = selected.filter(id => id !== entry.item.id);
+      renderGrid(); renderOutfit();
+    };
+    if (!isModel) {
+      div.querySelectorAll('.usemode button').forEach(b => b.onclick = () => {
+        itemMode[entry.item.id] = b.dataset.m;
+        renderOutfit();
+      });
+    }
+    listEl.appendChild(div);
+  });
+  const m = items.find(i => i.id === selectedModel);
+  document.getElementById('modelPicked').textContent = m ? m.name : 'なし';
+}
+
+/* 添付順：モデル → 服（選んだ順） */
+function attachOrder() {
+  const out = [];
+  if (modelMode === 'image' && selectedModel != null) {
+    const m = items.find(i => i.id === selectedModel);
+    if (m) out.push({ item: m, role: 'model' });
+  }
+  selected.forEach(id => {
+    const it = items.find(i => i.id === id);
+    if (it) out.push({ item: it, role: 'outfit' });
+  });
+  return out;
+}
+
+/* ================= モデルモード ================= */
+function setModelMode(v) {
+  modelMode = v;
+  document.querySelectorAll('#modelMode button').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+  document.getElementById('modelTextOpts').style.display = v === 'text' ? 'block' : 'none';
+  document.getElementById('modelNoneOpts').style.display = v === 'none' ? 'block' : 'none';
+  document.getElementById('modelImageHint').style.display = v === 'image' ? 'block' : 'none';
+  document.getElementById('faceRow').style.display = v === 'none' ? 'none' : 'flex';
+  document.getElementById('composition').parentElement.style.display = v === 'none' ? 'none' : 'block';
+  renderOutfit();
+}
+document.querySelectorAll('#modelMode button').forEach(b => b.onclick = () => setModelMode(b.dataset.v));
+
+document.getElementById('scene').onchange = e => {
+  document.getElementById('sceneCustom').style.display = e.target.value === 'custom' ? 'block' : 'none';
+};
+
+/* ================= JSON生成 ================= */
+function buildPrompt() {
+  const attach = attachOrder();
+  const clothes = attach.filter(a => a.role === 'outfit');
+  if (!clothes.length) { toast('服が選ばれていませんよ 👀'); return null; }
+  if (modelMode === 'image' && selectedModel == null) { toast('モデル画像を選ぶか、モデルの扱いを変えてくださいね'); return null; }
+
+  const sceneSel = document.getElementById('scene').value;
+  const scene = sceneSel === 'custom'
+    ? (document.getElementById('sceneCustom').value.trim() || '白ホリスタジオ（自然光）')
+    : sceneSel;
+  const noFace = document.getElementById('noFace').checked;
+
+  const attached_images = attach.map((a, i) => ({
+    image: i + 1,
+    role: a.role === 'model' ? 'モデル（この人物を使う）' : `服・アイテム（${catLabel(a.item.category)}）`,
+    name: a.item.name,
+  }));
+
+  const outfit = clothes.map((a, i) => ({
+    item: a.item.name,
+    category: catEn(a.item.category),
+    use_as: modeOf(a.item) === 'full' ? '全身コーデ（一式を着せる）' : '単品アイテム',
+    source_image: attach.indexOf(a) + 1,
+    instruction: modeOf(a.item) === 'full'
+      ? 'この参考写真のコーディネート一式（トップス・ボトムス・靴・小物）を、デザイン・色・素材感・丈そのままに着せる。写真の人物の顔や背景はコピーしない'
+      : '添付画像の中のこのアイテム（例：トップスならトップス、スカートならスカート）だけを取り出して着せる。他の服や人物・背景はコピーしない。デザイン・色・素材感・丈（長さ）・ディテールは忠実に再現する',
+  }));
+
+  let model;
+  if (modelMode === 'image') {
+    model = {
+      type: '添付画像1のモデルを使用',
+      instruction: '添付画像1と同じ女性モデルを使い、顔立ち・髪型・全体の雰囲気・ポーズはそのままに、服だけを着せ替える。モデルがバッグを持っている場合は、同じバッグを同じ持ち方でそのまま持たせる（持つ手・位置・手持ちか肩掛けか斜めがけか、チェーンやストラップの掛かり方まで同じに。チェーンは省略しない）',
+    };
+  } else if (modelMode === 'text') {
+    model = {
+      type: '文章指定',
+      nationality: document.getElementById('mRace').value,
+      age: document.getElementById('mAge').value,
+      mood: document.getElementById('mMood').value,
+      hair: document.getElementById('mHair').value,
+    };
+  } else {
+    model = { type: 'モデルなし（服のみの物撮り）', presentation: document.getElementById('flatStyle').value };
+  }
+
+  const rules = [
+    '服のデザイン・色・柄・シルエット・ディテール（ボタン、ステッチ、ロゴ等）は添付画像と完全に一致させる。勝手なアレンジをしない',
+    '添付した服のアイテム数と着用アイテム数を一致させる（勝手に足したり省いたりしない）',
+  ];
+  rules.push('服の丈（スカート丈・パンツ丈・袖丈）は服の参考画像と完全に同じにする。勝手に長くしたり短くしたりしない');
+  rules.push('【色】服・バッグ・小物の色は元画像の色みをそのまま忠実に再現する。特にグレージュ・くすみカラー・ダークブラウン・スモーキーカラーなどの微妙なニュアンスカラーは、勝手に彩度を上げたり、赤み・黄み・オレンジみを足したりして鮮やかにしない。元画像と同じ色相・明度・くすみ感を保つ');
+  if (modelMode !== 'none') {
+    rules.push('人物はモデル1人のみ。他の人物を写さない');
+    rules.push('仕上がりは自然な写真らしくする（過度なレタッチや加工をしない）');
+    if (noFace) rules.push('顔は写さない。あご下から下のフレーミングにする');
+  }
+  if (modelMode === 'image') {
+    rules.push('【最重要】モデル写真（添付画像1）の人物がバッグを持っている場合、生成画像でも絶対に同じバッグを持たせる。バッグを外す・省略する・別のバッグに変えることは禁止');
+    rules.push('【最重要】バッグの「持ち方」をモデル写真と完全に一致させる。持つ手（右手/左手/両手）・体のどの位置で持つか・手で持つのか肩掛けか斜め掛けか腕にかけるか・チェーンやハンドルを握る位置まで、モデル写真とまったく同じにする。持ち方を変えることは禁止');
+    rules.push('【最重要】このバッグには金色のチェーン（ハンドル兼ストラップ）が付いている。生成画像でもその金色チェーンを必ずはっきり描く。モデルがチェーンを手で握って体の前にぶら下げている場合はその状態を、肩掛け・斜めがけの場合はその状態を、モデル写真どおりに再現する。チェーンを省略したり、バッグを直接手で抱えるだけの状態にするのは絶対禁止');
+    rules.push('そのバッグの形状・大きさ・色・素材・金具・チェーン・キルティング等のディテールは一切変えない。モデル写真と完全に同一のバッグにする');
+  } else if (modelMode === 'text') {
+    rules.push('服の参考写真にバッグが写っている場合は、同じバッグを必ず持たせ、形・色・ディテールを変えない');
+  }
+  rules.push('テキスト・ロゴ・透かしを画像に入れない');
+
+  const json = {
+    task: modelMode === 'none'
+      ? '添付画像の服アイテムを組み合わせた、おしゃれな物撮り画像の生成'
+      : '添付画像の服をモデルに着せた、ファッション撮影風画像の生成',
+    attached_images,
+    model,
+    outfit,
+    photography: modelMode === 'none' ? {
+      style: '上質なECサイト・雑誌のような物撮り',
+      lighting: '柔らかい自然光、上品な影',
+      background: scene,
+      aspect_ratio: document.getElementById('aspect').value.split('（')[0],
+    } : {
+      style: 'ファッション誌のような自然でリアルな写真',
+      composition: document.getElementById('composition').value,
+      scene: scene,
+      lighting: '自然光ベースの柔らかいライティング',
+      aspect_ratio: document.getElementById('aspect').value.split('（')[0],
+    },
+    rules,
+  };
+  return { json, attach };
+}
+
+document.getElementById('genBtn').onclick = () => {
+  const built = buildPrompt();
+  if (!built) return;
+  const out = document.getElementById('output');
+  out.style.display = 'block';
+  document.getElementById('jsonOut').value = JSON.stringify(built.json, null, 2);
+  const lines = built.attach.map((a, i) =>
+    `${i + 1}枚目 → ${a.role === 'model' ? '🧍 ' : '👗 '}${a.item.name}（${catLabel(a.item.category)}）`);
+  document.getElementById('attachNote').innerHTML =
+    `<b>ChatGPTへの添付順（この順番で画像を付けてくださいね）</b><br>` + lines.join('<br>') +
+    `<br><span style="color:var(--sub)">※「番号付きで書き出す」ボタンを使うと、この順番のファイル名で保存できますよ</span>`;
+  out.scrollIntoView({ behavior: 'smooth' });
+};
+
+document.getElementById('copyBtn').onclick = async () => {
+  const t = document.getElementById('jsonOut');
+  t.select();
+  try { await navigator.clipboard.writeText(t.value); } catch { document.execCommand('copy'); }
+  toast('コピーしました！ChatGPTに貼り付けてくださいね ✨');
+};
+
+/* ================= 画像書き出し ================= */
+document.getElementById('exportBtn').onclick = () => {
+  const attach = attachOrder();
+  if (!attach.length) { toast('先に服（とモデル）を選んでくださいね'); return; }
+  attach.forEach((a, i) => {
+    const ext = (a.item.blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    const link = document.createElement('a');
+    link.href = url(a.item);
+    link.download = `${String(i + 1).padStart(2, '0')}_${a.item.name}.${ext}`;
+    document.body.appendChild(link); link.click(); link.remove();
+  });
+  toast(`${attach.length}枚をダウンロードしました 📥`);
+};
+
+function resetSelection() {
+  selected = []; selectedModel = null; itemMode = {};
+  document.getElementById('output').style.display = 'none';
+  currentTab = 'all';
+  renderTabs(); renderGrid(); renderOutfit();
+}
+document.getElementById('clearBtn').onclick = resetSelection;
+document.querySelector('header h1').onclick = resetSelection;
+
+/* ================= 入力イベント ================= */
+const addzone = document.getElementById('addzone');
+const addCatSel = document.getElementById('addCategory');
+CATS.forEach(c => {
+  const o = document.createElement('option');
+  o.value = c.id; o.textContent = c.label;
+  if (c.id === 'tops') o.selected = true;
+  addCatSel.appendChild(o);
+});
+document.getElementById('pickBtn').onclick = () => document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = e => { addFiles([...e.target.files], addCatSel.value); e.target.value = ''; };
+
+['dragover', 'dragenter'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); addzone.classList.add('dragover'); }));
+['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); addzone.classList.remove('dragover'); }));
+document.addEventListener('drop', e => {
+  const files = [...(e.dataTransfer?.files || [])];
+  if (files.length) addFiles(files, addCatSel.value);
+  else toast('この画像は直接ドロップできないみたいです。「画像をコピー」→ Cmd+V を試してみてくださいね');
+});
+document.addEventListener('paste', e => {
+  const files = [...(e.clipboardData?.items || [])]
+    .filter(i => i.type.startsWith('image/'))
+    .map(i => i.getAsFile()).filter(Boolean);
+  if (files.length) addFiles(files, addCatSel.value);
+});
+
+/* タブ選択に合わせて追加先カテゴリも追従 */
+document.getElementById('tabs').addEventListener('click', () => {
+  if (currentTab !== 'all') addCatSel.value = currentTab;
+});
+
+/* ================= ライトボックス（拡大表示） ================= */
+let lbItem = null;
+function openLightbox(item) {
+  lbItem = item;
+  document.getElementById('lbImg').src = url(item);
+  document.getElementById('lbName').textContent = item.name;
+  updateLbAdd();
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+  lbItem = null;
+}
+function updateLbAdd() {
+  if (!lbItem) return;
+  const btn = document.getElementById('lbAdd');
+  const isModel = lbItem.category === 'model';
+  const isSel = isModel ? selectedModel === lbItem.id : selected.includes(lbItem.id);
+  btn.textContent = isSel ? '選択を外す' : (isModel ? 'モデルに使う' : 'コーデに追加');
+  btn.classList.toggle('remove', isSel);
+}
+document.getElementById('lbAdd').onclick = () => { if (lbItem) { toggleSelect(lbItem); updateLbAdd(); } };
+document.getElementById('lbClose').onclick = closeLightbox;
+document.getElementById('lightbox').onclick = e => { if (e.target.id === 'lightbox') closeLightbox(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+/* ================= toast & init ================= */
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+async function reload() {
+  items = await dbAll();
+  renderTabs(); renderGrid(); renderOutfit();
+}
+
+/* 起動時に「はじめの服セット」の未読み込み分を自動追加（バージョン方式） */
+async function importSeed() {
+  if (!window.SEED_ITEMS) return;
+  let ver = parseInt(localStorage.getItem('seedVer') || '0', 10);
+  if (!ver && localStorage.getItem('seedDone')) ver = 1; // 旧フラグからの移行
+  const fresh = window.SEED_ITEMS.filter(s => (s.v || 1) > ver);
+  if (!fresh.length) return;
+  const existing = await dbAll();
+  if (ver === 0 && existing.length > 0) {
+    // 既に手動で画像を入れている場合は上書きしない
+    localStorage.setItem('seedVer', String(Math.max(...window.SEED_ITEMS.map(s => s.v || 1))));
+    return;
+  }
+  for (const s of fresh) {
+    const bin = atob(s.b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    await dbAdd({ category: s.category, name: s.name, blob: new Blob([arr], { type: s.mime }), createdAt: Date.now() });
+  }
+  localStorage.setItem('seedVer', String(Math.max(...window.SEED_ITEMS.map(s => s.v || 1))));
+  toast(`服セットに ${fresh.length}点を追加しました 🎉`);
+}
+
+openDB().then(async () => { await importSeed(); await reload(); });
+</script>
+</body>
+</html>
