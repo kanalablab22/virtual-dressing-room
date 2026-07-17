@@ -528,6 +528,7 @@ function renderGrid() {
     card.querySelector('.del').onclick = async e => {
       e.stopPropagation();
       if (!confirm(`「${item.name}」を削除しますか？`)) return;
+      markSeedDeleted(item);
       await dbDel(item.id);
       selected = selected.filter(id => id !== item.id);
       if (selectedModel === item.id) selectedModel = null;
@@ -852,17 +853,38 @@ async function reload() {
   renderTabs(); renderGrid(); renderOutfit();
 }
 
-/* 起動時に「はじめの服セット」の未読み込み分を自動追加（バージョン方式） */
+/* 公式セットの服を消したら記憶して、二度と復活させない */
+function seedKeyOf(item) { return item.category + '|' + item.name; }
+function deletedSeedKeys() {
+  try { return JSON.parse(localStorage.getItem('deletedSeed') || '[]'); } catch { return []; }
+}
+function markSeedDeleted(item) {
+  const seedKeys = new Set((window.SEED_ITEMS || []).map(seedKeyOf));
+  const key = seedKeyOf(item);
+  if (!seedKeys.has(key)) return; // 自分で追加した服は対象外
+  const arr = deletedSeedKeys();
+  if (!arr.includes(key)) { arr.push(key); localStorage.setItem('deletedSeed', JSON.stringify(arr)); }
+}
+
+/* 起動時に「はじめの服セット」の未読み込み分を自動追加（バージョン方式・削除済みは除く） */
 async function importSeed() {
   if (!window.SEED_ITEMS) return;
+  // 公式セットから削除された服は、各ブラウザからも消す
+  const removed = new Set(window.SEED_REMOVED || []);
+  if (removed.size) {
+    const cur = await dbAll();
+    for (const it of cur) if (removed.has(seedKeyOf(it))) await dbDel(it.id);
+  }
   let ver = parseInt(localStorage.getItem('seedVer') || '0', 10);
   if (!ver && localStorage.getItem('seedDone')) ver = 1; // 旧フラグからの移行
-  const fresh = window.SEED_ITEMS.filter(s => (s.v || 1) > ver);
-  if (!fresh.length) return;
+  const deleted = new Set(deletedSeedKeys());
+  const fresh = window.SEED_ITEMS.filter(s => (s.v || 1) > ver && !deleted.has(seedKeyOf(s)) && !removed.has(seedKeyOf(s)));
+  const maxVer = String(Math.max(...window.SEED_ITEMS.map(s => s.v || 1)));
+  if (!fresh.length) { localStorage.setItem('seedVer', maxVer); return; }
   const existing = await dbAll();
   if (ver === 0 && existing.length > 0) {
     // 既に手動で画像を入れている場合は上書きしない
-    localStorage.setItem('seedVer', String(Math.max(...window.SEED_ITEMS.map(s => s.v || 1))));
+    localStorage.setItem('seedVer', maxVer);
     return;
   }
   for (const s of fresh) {
@@ -871,7 +893,7 @@ async function importSeed() {
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
     await dbAdd({ category: s.category, name: s.name, blob: new Blob([arr], { type: s.mime }), createdAt: Date.now() });
   }
-  localStorage.setItem('seedVer', String(Math.max(...window.SEED_ITEMS.map(s => s.v || 1))));
+  localStorage.setItem('seedVer', maxVer);
   toast(`服セットに ${fresh.length}点を追加しました 🎉`);
 }
 
