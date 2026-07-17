@@ -902,10 +902,12 @@ async function importSeed() {
   let ver = parseInt(localStorage.getItem('seedVer') || '0', 10);
   if (!ver && localStorage.getItem('seedDone')) ver = 1; // 旧フラグからの移行
   const deleted = new Set(deletedSeedKeys());
-  const fresh = window.SEED_ITEMS.filter(s => (s.v || 1) > ver && !deleted.has(seedKeyOf(s)) && !removed.has(seedKeyOf(s)));
+  const existing = await dbAll();
+  const existingKeys = new Set(existing.map(seedKeyOf));
+  const fresh = window.SEED_ITEMS.filter(s =>
+    (s.v || 1) > ver && !deleted.has(seedKeyOf(s)) && !removed.has(seedKeyOf(s)) && !existingKeys.has(seedKeyOf(s)));
   const maxVer = String(Math.max(...window.SEED_ITEMS.map(s => s.v || 1)));
   if (!fresh.length) { localStorage.setItem('seedVer', maxVer); return; }
-  const existing = await dbAll();
   if (ver === 0 && existing.length > 0) {
     // 既に手動で画像を入れている場合は上書きしない
     localStorage.setItem('seedVer', maxVer);
