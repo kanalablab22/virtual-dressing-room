@@ -275,6 +275,7 @@
         <select id="addCategory"></select>
         <button class="ghost small" id="pickBtn">ファイルを選ぶ</button>
         <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <button class="ghost small" id="shareBtn" title="自分で追加した服をファイルに書き出します。管理者に渡すと公開版に反映されて全員に表示されます">追加した服を共有用に書き出す</button>
       </div>
     </div>
 
@@ -744,6 +745,31 @@ document.getElementById('exportBtn').onclick = () => {
     document.body.appendChild(link); link.click(); link.remove();
   });
   toast(`${attach.length}枚をダウンロードしました 📥`);
+};
+
+/* 自分で追加した服（公式セットに無いもの）を共有用JSONに書き出す */
+document.getElementById('shareBtn').onclick = async () => {
+  const seedKeys = new Set((window.SEED_ITEMS || []).map(s => s.category + '|' + s.name));
+  const mine = items.filter(i => !seedKeys.has(i.category + '|' + i.name));
+  if (!mine.length) { toast('あなたが追加した服はまだ無いみたいですよ'); return; }
+  const out = [];
+  for (const it of mine) {
+    const buf = await it.blob.arrayBuffer();
+    let bin = '';
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    out.push({ category: it.category, name: it.name, mime: it.blob.type || 'image/jpeg', b64: btoa(bin) });
+  }
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `服の共有書き出し_${stamp}.json`;
+  document.body.appendChild(link); link.click(); link.remove();
+  toast(`${mine.length}点を書き出しました。管理者に渡すと全員に公開されますよ 📤`);
 };
 
 function resetSelection() {
