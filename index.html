@@ -251,6 +251,46 @@
     font-size: 12.5px; letter-spacing: .08em; opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 99;
   }
   .toast.show { opacity: 1; }
+
+  /* ---- スマホ対応 ---- */
+  @media (max-width: 768px) {
+    header { padding: 22px 18px 18px; }
+    header h1 { font-size: 26px; gap: 10px; letter-spacing: .05em; }
+    header h1 .logo { width: 30px; height: 30px; flex: 0 0 30px; }
+    header p.sub { font-size: 11px; margin-top: 8px; }
+
+    .layout { flex-direction: column; min-height: 0; }
+    .closet { padding: 18px 14px 30px; }
+    .side {
+      width: 100%; flex: none;
+      border-left: none; border-top: 1px solid var(--line);
+      padding: 26px 18px 60px;
+    }
+
+    .addzone { padding: 16px 14px; margin-bottom: 18px; }
+    .addzone .hint { font-size: 10.5px; line-height: 1.9; }
+    .addzone .row { gap: 8px; }
+
+    .tabs { gap: 6px; margin-bottom: 16px; }
+    .tabs button { padding: 5px 12px; font-size: 11px; }
+
+    .grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+    .card:hover { transform: none; box-shadow: none; }
+    .card .zoom { opacity: 1; width: 24px; height: 24px; }
+    .card.selected .zoom { right: 36px; }
+    .card .meta { padding: 7px 8px; }
+    .card .meta input { font-size: 10.5px; }
+
+    .block { margin-bottom: 26px; }
+    .seg { width: 100%; }
+    .seg button { flex: 1; padding: 9px 6px; font-size: 11px; letter-spacing: 0; }
+    .actions .primary { font-size: 13px; letter-spacing: .18em; }
+
+    .lightbox { padding: 6px; }
+    .lb-inner img { max-width: 96vw; max-height: 80vh; }
+    .lb-cap { flex-direction: column; gap: 10px; }
+    .lb-close { top: 10px; right: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -647,8 +687,8 @@ function buildPrompt() {
     use_as: modeOf(a.item) === 'full' ? '全身コーデ（一式を着せる）' : '単品アイテム',
     source_image: attach.indexOf(a) + 1,
     instruction: modeOf(a.item) === 'full'
-      ? 'この参考写真のコーディネート一式（トップス・ボトムス・靴・小物）を、デザイン・色・素材感・丈そのままに着せる。写真の人物の顔や背景はコピーしない'
-      : '添付画像の中のこのアイテム（例：トップスならトップス、スカートならスカート）だけを取り出して着せる。他の服や人物・背景はコピーしない。デザイン・色・素材感・丈（長さ）・ディテールは忠実に再現する',
+      ? 'この参考写真のコーディネート一式（トップス・ボトムス・靴・小物）を、デザイン・色・素材感・丈そのままに着せる。この写真の人物（顔・髪型・体つき・ポーズ）や背景は絶対にコピーしない'
+      : '添付画像の中のこのアイテム（例：トップスならトップス、スカートならスカート）だけを取り出して着せる。この写真の人物（顔・髪型・体つき・ポーズ）・他の服・背景は絶対にコピーしない。服のデザイン・色・素材感・丈（長さ）・ディテールは忠実に再現する',
   }));
 
   let model;
@@ -679,6 +719,9 @@ function buildPrompt() {
     rules.push('人物はモデル1人のみ。他の人物を写さない');
     rules.push('仕上がりは自然な写真らしくする（過度なレタッチや加工をしない）');
     if (noFace) rules.push('顔は写さない。あご下から下のフレーミングにする');
+  }
+  if (modelMode === 'image' && clothes.length) {
+    rules.push('【最重要】生成画像の人物は「添付画像1のモデル」だけ。服の参考写真（添付画像2以降）に人物が写っていても、その人の顔・髪型・体つき・ポーズ・背景を絶対に使わない。参考写真からは服のアイテムだけを取り出すこと');
   }
   if (modelMode === 'image') {
     rules.push('【最重要】モデル写真（添付画像1）の人物がバッグを持っている場合、生成画像でも絶対に同じバッグを持たせる。バッグを外す・省略する・別のバッグに変えることは禁止');
