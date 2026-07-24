@@ -774,7 +774,11 @@ function buildPrompt() {
     rules,
   };
   if (document.getElementById('aspect').value.includes('ZOZO')) {
-    json.photography.output_size = '横1500×縦1800px（5:6）で書き出す';
+    /* AIに5:6を作らせると白帯を描き足すことがあるので、AIには普通の縦写真を
+       作らせて、5:6(1500×1800)への切り抜きはローカルの受付係が行う */
+    json.photography.aspect_ratio = '縦位置';
+    json.photography.framing = '写真は画面の隅々まで写す。あとで上下を少し切り抜いて5:6にするため、全身の上（頭上）と下（足元）に背景の余裕を多めに入れた構図にする';
+    rules.push('【最重要】画像の端に白い余白・帯・枠・パディングを絶対に描かない。レターボックス禁止。写真そのものを画面全体いっぱいに描く');
   }
   return { json, attach };
 }
