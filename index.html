@@ -245,6 +245,18 @@
     background: var(--gold-soft); border-radius: 3px; padding: 12px 16px;
     font-size: 12px; line-height: 2.1; margin-bottom: 12px;
   }
+  /* ---- Codex連携（ローカル起動時だけ表示） ---- */
+  #codexBtn { display: none; background: var(--gold); font-size: 13px; padding: 14px; letter-spacing: .18em; }
+  #codexBtn:hover { background: #9c7d4d; opacity: 1; }
+  #codexBtn:disabled { opacity: .55; cursor: default; }
+  #codexResult { display: none; margin-top: 18px; }
+  #codexResult .status {
+    background: var(--gold-soft); border-radius: 3px; padding: 12px 16px;
+    font-size: 12px; line-height: 1.9; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word;
+  }
+  #codexResult .status.err { background: #f3e2de; color: var(--danger); }
+  #codexResult img { max-width: 100%; border-radius: 4px; box-shadow: 0 12px 30px rgba(30,27,23,.14); display: block; }
+
   .toast {
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
     background: var(--ink); color: #fff; padding: 12px 28px; border-radius: 999px;
@@ -421,8 +433,15 @@
 
     <div class="actions">
       <button class="primary" id="genBtn">プロンプトを生成</button>
+      <button id="codexBtn" title="ローカルサーバー起動中だけ使えます。Codex（GPT Image）でそのまま画像を作ります">🎨 Codexで画像生成（数分かかります）</button>
       <button class="ghost" id="exportBtn">選択画像を番号付きで書き出す（添付用）</button>
       <button class="ghost" id="clearBtn">選択をぜんぶ外す</button>
+    </div>
+
+    <div id="codexResult">
+      <h2 style="margin-top:8px"><span class="en">Codex</span>生成結果</h2>
+      <div class="status" id="codexStatus"></div>
+      <img id="codexImg" alt="" style="display:none">
     </div>
 
     <div id="output">
@@ -776,6 +795,85 @@ document.getElementById('copyBtn').onclick = async () => {
   t.select();
   try { await navigator.clipboard.writeText(t.value); } catch { document.execCommand('copy'); }
   toast('コピーしました！ChatGPTに貼り付けてくださいね ✨');
+};
+
+/* ================= Codex連携 =================
+   自分のMacでローカルサーバー（着せ替えツール起動.command）が動いているときだけ
+   ボタンが出ます。動いていない人（＝みんな）には何も表示されません */
+const CODEX_BASE = 'http://localhost:8639';
+fetch(CODEX_BASE + '/codex-status').then(r => r.json()).then(s => {
+  if (s.ok) document.getElementById('codexBtn').style.display = 'block';
+}).catch(() => {});
+
+async function blobToB64(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+const fmtElapsed = s => (s >= 60 ? `${Math.floor(s / 60)}分${s % 60}秒` : `${s}秒`);
+
+let codexRunning = false;
+document.getElementById('codexBtn').onclick = async () => {
+  if (codexRunning) return;
+  const built = buildPrompt();
+  if (!built) return;
+
+  const btn = document.getElementById('codexBtn');
+  const box = document.getElementById('codexResult');
+  const status = document.getElementById('codexStatus');
+  const img = document.getElementById('codexImg');
+  codexRunning = true;
+  btn.disabled = true;
+  box.style.display = 'block';
+  img.style.display = 'none';
+  status.className = 'status';
+  status.textContent = '画像を準備しています…';
+  box.scrollIntoView({ behavior: 'smooth' });
+
+  try {
+    const images = [];
+    for (const a of built.attach) {
+      images.push({
+        name: a.item.name,
+        mime: a.item.blob.type || 'image/jpeg',
+        b64: await blobToB64(a.item.blob),
+      });
+    }
+    const res = await fetch(CODEX_BASE + '/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: JSON.stringify(built.json, null, 2), images }),
+    });
+    const { job, error } = await res.json();
+    if (!job) throw new Error(error || 'ジョブを開始できませんでした');
+
+    while (true) {
+      await new Promise(r => setTimeout(r, 4000));
+      const j = await (await fetch(CODEX_BASE + '/job/' + job)).json();
+      if (j.status === 'running') {
+        status.textContent = `Codexが生成中です… ⏳ ${fmtElapsed(j.elapsed)} 経過（だいたい2〜5分かかります）`;
+      } else if (j.status === 'done') {
+        img.src = 'data:image/png;base64,' + j.b64;
+        img.style.display = 'block';
+        status.textContent = `できあがりました！🎉（${fmtElapsed(j.elapsed)}）\n「生成結果」フォルダに ${j.file} として保存済みですよ`;
+        break;
+      } else {
+        status.className = 'status err';
+        status.textContent = 'うまくいきませんでした 🙏\n' + (j.error || '');
+        break;
+      }
+    }
+  } catch (e) {
+    status.className = 'status err';
+    status.textContent = 'エラーが出てしまいました 🙏\n' + e.message +
+      '\nローカルサーバー（着せ替えツール起動.command）が動いているか確認してみてくださいね';
+  } finally {
+    codexRunning = false;
+    btn.disabled = false;
+  }
 };
 
 /* ================= 画像書き出し ================= */
