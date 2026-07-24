@@ -858,7 +858,7 @@ document.getElementById('codexBtn').onclick = async () => {
       } else if (j.status === 'done') {
         img.src = 'data:image/png;base64,' + j.b64;
         img.style.display = 'block';
-        status.textContent = `できあがりました！🎉（${fmtElapsed(j.elapsed)}）\n「生成結果」フォルダに ${j.file} として保存済みですよ`;
+        status.textContent = `できあがりました！🎉（${fmtElapsed(j.elapsed)}）\nダウンロードフォルダの「着せ替え生成」に ${j.file} として保存済みですよ`;
         break;
       } else {
         status.className = 'status err';
