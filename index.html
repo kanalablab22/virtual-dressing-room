@@ -416,7 +416,7 @@
       </div>
       <div class="field"><label>画像の縦横比</label>
         <select id="aspect">
-          <option>3:4（縦）</option><option>5:6（縦）</option><option selected>9:16（縦長・スマホ）</option>
+          <option>3:4（縦）</option><option>5:6（ZOZO規格 1500×1800px）</option><option selected>9:16（縦長・スマホ）</option>
           <option>1:1（正方形）</option><option>4:3（横）</option><option>16:9（横長）</option>
         </select>
       </div>
@@ -773,7 +773,15 @@ function buildPrompt() {
     },
     rules,
   };
+  if (document.getElementById('aspect').value.includes('ZOZO')) {
+    json.photography.output_size = '横1500×縦1800px（5:6）で書き出す';
+  }
   return { json, attach };
+}
+
+/* ZOZO規格選択時は、生成後に受付係がピッタリ切り抜くための目標サイズ */
+function targetSize() {
+  return document.getElementById('aspect').value.includes('ZOZO') ? '1500x1800' : null;
 }
 
 document.getElementById('genBtn').onclick = () => {
@@ -845,7 +853,7 @@ document.getElementById('codexBtn').onclick = async () => {
     const res = await fetch(CODEX_BASE + '/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: JSON.stringify(built.json, null, 2), images }),
+      body: JSON.stringify({ prompt: JSON.stringify(built.json, null, 2), images, size: targetSize() }),
     });
     const { job, error } = await res.json();
     if (!job) throw new Error(error || 'ジョブを開始できませんでした');
