@@ -218,7 +218,9 @@
   .outfit-item .info { flex: 1; min-width: 0; }
   .outfit-item .info .nm { font-size: 12px; font-weight: 600; letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .outfit-item .info .ct { font-size: 10px; color: var(--sub); letter-spacing: .16em; margin-top: 2px; }
-  .usemode { display: inline-flex; margin-top: 6px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .usewrap { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .uselabel { font-size: 10px; color: var(--sub); letter-spacing: .06em; }
+  .usemode { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
   .usemode button {
     background: transparent; color: var(--sub); border: none; border-radius: 0;
     padding: 3px 10px; font-size: 10.5px; letter-spacing: .04em;
@@ -620,9 +622,12 @@ function renderOutfit() {
     const isModel = entry.item.category === 'model';
     const mode = modeOf(entry.item);
     const toggle = isModel ? '' : `
-      <div class="usemode" title="この服の使い方を切り替え">
-        <button class="${mode === 'part' ? 'on' : ''}" data-m="part">単品</button>
-        <button class="${mode === 'full' ? 'on' : ''}" data-m="full">全身コーデ</button>
+      <div class="usewrap">
+        <span class="uselabel">この写真から</span>
+        <div class="usemode">
+          <button class="${mode === 'part' ? 'on' : ''}" data-m="part" title="この写真の中の、このアイテムだけを着せます">単品だけ</button>
+          <button class="${mode === 'full' ? 'on' : ''}" data-m="full" title="この写真のコーデ一式（トップスもボトムスも）をまるごと着せます">コーデ全部</button>
+        </div>
       </div>`;
     div.innerHTML = `
       <span class="no">${idx + 1}</span>
