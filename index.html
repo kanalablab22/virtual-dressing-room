@@ -316,7 +316,7 @@
 
 <header>
   <h1 title="クリックでリセット"><svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="12" fill="#1e1b17"/><g fill="none" stroke="#d8b878" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 20.5c0-3 2.3-5.3 5.2-5.3 2.9 0 5.2 2.3 5.2 5.2 0 2.2-1.6 3.4-3.4 4.2-2.7 1.2-4.2 2.4-4.2 4.6"/><path d="M32 33.2 12.5 45.2c-1.7 1-1 3.6 1 3.6h37c2 0 2.7-2.6 1-3.6L32 33.2z"/></g><circle cx="32" cy="33.2" r="2.2" fill="#d8b878"/></svg>Virtual Dressing&nbsp;Room</h1>
-  <p class="sub">服をあつめて、コーデを組んで、ChatGPT用のプロンプトに。<span class="ver">ver 2.1</span></p>
+  <p class="sub">服をあつめて、コーデを組んで、ChatGPT用のプロンプトに。<span class="ver">ver 2.2</span></p>
 </header>
 
 <div class="layout">
@@ -805,12 +805,15 @@ function buildPrompt() {
     },
     rules,
   };
+  /* 比率合わせはローカルの受付係が「切り抜き」で行う（AIに任せると余白を描き足したり
+     引き伸ばして画質を落とすため）。AIには普通の写真を作らせる */
+  rules.push('【最重要】画像の端に白い余白・帯・枠・パディングを絶対に描かない。レターボックス禁止。写真そのものを画面全体いっぱいに描く');
+  rules.push('比率を合わせるために画像を拡大・縮小・引き伸ばし（リサンプリング）しない。生成したままの解像度で出す');
   if (document.getElementById('aspect').value.includes('ZOZO')) {
-    /* AIに5:6を作らせると白帯を描き足すことがあるので、AIには普通の縦写真を
-       作らせて、5:6(1500×1800)への切り抜きはローカルの受付係が行う */
     json.photography.aspect_ratio = '縦位置';
     json.photography.framing = 'あとで上下を少し切り抜いて5:6にするため、構図（composition）で画面に写す範囲が画像の上下中央75%に収まるようにして、画像の上端と下端は背景だけにする。指定の構図より引き（ワイド）にはしない' + (partialComp ? '' : '。人物や持ち物が画像の端で見切れないようにする');
-    rules.push('【最重要】画像の端に白い余白・帯・枠・パディングを絶対に描かない。レターボックス禁止。写真そのものを画面全体いっぱいに描く');
+  } else {
+    json.photography.framing = 'あとで指定の縦横比に少し切り抜くため、人物・服・バッグ・持ち物を画像の端ギリギリに配置せず、中央寄りにおさめる';
   }
   return { json, attach };
 }
@@ -818,6 +821,10 @@ function buildPrompt() {
 /* ZOZO規格選択時は、生成後に受付係がピッタリ切り抜くための目標サイズ */
 function targetSize() {
   return document.getElementById('aspect').value.includes('ZOZO') ? '1500x1800' : null;
+}
+/* それ以外の比率は、受付係が「切り抜くだけ」で合わせる（引き伸ばさないので画質が落ちない） */
+function targetRatio() {
+  return document.getElementById('aspect').value.split('（')[0].trim();
 }
 
 document.getElementById('genBtn').onclick = () => {
@@ -889,7 +896,8 @@ document.getElementById('codexBtn').onclick = async () => {
     const res = await fetch(CODEX_BASE + '/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: JSON.stringify(built.json, null, 2), images, size: targetSize() }),
+      body: JSON.stringify({ prompt: JSON.stringify(built.json, null, 2), images,
+                             size: targetSize(), ratio: targetRatio() }),
     });
     const { job, error } = await res.json();
     if (!job) throw new Error(error || 'ジョブを開始できませんでした');
